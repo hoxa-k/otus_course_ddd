@@ -8,7 +8,7 @@ void main() {
     });
 
     test('Points creation fail test', () {
-      expect(() => Points(-24), throwsA(isA<AssertionError>()));
+      expect(() => Points(-24), throwsA(isA<FormatException>()));
     });
 
     test('Points equality test', () {

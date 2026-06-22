@@ -2,7 +2,7 @@ class Points {
   final int count;
 
   Points(this.count) {
-    assert(count >= 0, 'Количество баллов не может быть отрицательным');
+    if (count < 0) throw FormatException('Количество баллов не может быть отрицательным');
   }
 
   Points add(int count) {
