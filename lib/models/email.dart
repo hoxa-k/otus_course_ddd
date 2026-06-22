@@ -2,7 +2,7 @@ class Email {
   final String name;
 
   Email(this.name) {
-    assert(_isValid(), 'Value $name is not valid email');
+    if (!_isValid()) throw FormatException('Value $name is not valid email');
   }
 
   final _emailRegex = RegExp(

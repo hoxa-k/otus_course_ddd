@@ -8,7 +8,7 @@ void main() {
     });
 
     test('Email creation fail test', () {
-      expect(() => Email('info_otus.ru'), throwsA(isA<AssertionError>()));
+      expect(() => Email('info_otus.ru'), throwsA(isA<FormatException>()));
     });
 
     test('Email equality test', () {
