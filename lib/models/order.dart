@@ -4,13 +4,10 @@ import 'product.dart';
 class Order {
   static const maxPositionsCount = 10;
   final String id;
-  final List<OrderLine> _orderLines = [];
   final String customerId;
+  final List<OrderLine> _orderLines = [];
 
-  Order({
-    required this.id,
-    required this.customerId,
-  });
+  Order({required this.id, required this.customerId});
 
   List<OrderLine> get items => _orderLines;
 
