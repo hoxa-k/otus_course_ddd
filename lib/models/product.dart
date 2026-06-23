@@ -1,7 +1,9 @@
+import 'package:ddd/models/points.dart';
+
 class Product {
   final String id;
   final String name;
-  final String price;
+  final Points price;
   final String? description;
 
   const Product({
