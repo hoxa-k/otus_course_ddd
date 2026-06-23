@@ -1,8 +1,13 @@
 class Points {
   final int count;
 
-  Points(this.count) {
+  const Points._(this.count);
+
+  const Points.zero(): count = 0;
+
+  factory Points(int count) {
     if (count < 0) throw FormatException('Количество баллов не может быть отрицательным');
+    return Points._(count);
   }
 
   Points add(int count) {
