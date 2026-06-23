@@ -10,23 +10,27 @@ enum OrderStatus { draft, created, confirmed, paid }
 
 class Order {
   static const maxPositionsCount = 10;
-  OrderStatus status;
+  late OrderStatus _status;
   late String _id;
   late String _customerId;
+  final List<OrderLine> _orderLines = [];
 
   String? get id => _id;
 
   String get customerId => _customerId;
 
-  final List<OrderLine> _orderLines = [];
+  OrderStatus get status => _status;
+
+  List<OrderLine> get items => UnmodifiableListView(_orderLines);
 
   Order._({
     required String id,
     required String customerId,
-    required this.status,
+    required OrderStatus status,
   }) {
     _id = id;
     _customerId = customerId;
+    _status = status;
   }
 
   static Order createNew({required String customerId}) {
@@ -41,8 +45,6 @@ class Order {
   }) {
     return Order._(id: id, customerId: customerId, status: status);
   }
-
-  List<OrderLine> get items => UnmodifiableListView(_orderLines);
 
   void addItem(Product product, int quantity) {
     final bool isContainProduct = _isContainProduct(product);
