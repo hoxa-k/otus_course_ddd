@@ -9,4 +9,14 @@ VO Email [email.dart](lib/models/email.dart), Points [points.dart](lib/models/po
 [user_model_corrected.dart](lib/models/user_model_corrected.dart) - предложенный рефакторинг. 
 Выделить методы подсчета баллов в доменную сущность другого домена. Заменить примитивы на VO.
 
+## ДЗ 3 "Проектирование Агрегатов и их жизненный цикл"
 
+Агрегат Order [order.dart](lib/models/order.dart)
+
+Интерфейс репозитория [i_order_repository.dart](lib/repositories/i_order_repository.dart)
+
+Реализация in memory репозитория [in_memory_order_repository.dart](lib/infrastructure/repositories/in_memory_order_repository.dart)
+
+Ревлизована фабрика для создания агрегата Order через статический метод [order.dart](lib/models/order.dart#L32-L43)
+
+Тесты для проверки создания агрегата Order и сохранения в репозиторий [order_test.dart](test/order_test.dart)
