@@ -1,14 +1,16 @@
 import 'dart:collection';
 
+import 'package:ddd/domain/events/order_confirmed_event.dart';
 import 'package:uuid/uuid.dart';
 
+import 'domain_events_mixin.dart';
 import 'order_create_exception.dart';
 import 'order_line.dart';
 import 'product.dart';
 
 enum OrderStatus { draft, created, confirmed, paid }
 
-class Order {
+class Order with DomainEventsMixin {
   static const maxPositionsCount = 10;
   late OrderStatus _status;
   late String _id;
@@ -64,6 +66,36 @@ class Order {
     } else {
       _orderLines.add(orderLine);
     }
+  }
+
+  void submit() {
+    if (_status != .draft) {
+      throw OrderCreateException('Заказ в статусе $_status не может быть создан');
+    }
+    final totalProductsCount = _orderLines.isEmpty ? 0 : _orderLines
+        .map((e) => e.quantity)
+        .reduce((prev, next) => prev + next);
+    if (totalProductsCount <= 0) {
+      throw OrderCreateException('В заказе должен быть хотябы один продукт');
+    }
+    _status = .created;
+  }
+
+  void confirm() {
+    if (_status != .created) {
+      throw OrderCreateException(
+        'Заказ в статусе $_status не может быть подтвержден',
+      );
+    }
+    _status = .confirmed;
+    addDomainEvent(
+      OrderConfirmedEvent(
+        eventId: Uuid().v4(),
+        orderId: _id,
+        customerId: customerId,
+        occurredAt: DateTime.now(),
+      ),
+    );
   }
 
   bool _isContainProduct(Product product) {

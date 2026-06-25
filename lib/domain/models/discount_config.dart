@@ -1,4 +1,4 @@
-import 'package:ddd/models/user_model_corrected.dart';
+import 'package:ddd/domain/models/user_model_corrected.dart';
 
 class DiscountConfig {
   final int minPositionsInOrder;

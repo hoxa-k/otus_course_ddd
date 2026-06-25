@@ -1,4 +1,4 @@
-import 'package:ddd/models/email.dart';
+import 'package:ddd/domain/models/email.dart';
 import 'package:test/test.dart';
 
 void main() {

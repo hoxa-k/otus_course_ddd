@@ -1,5 +1,5 @@
-import 'package:ddd/models/points.dart';
-import 'package:ddd/models/email.dart';
+import 'package:ddd/domain/models/points.dart';
+import 'package:ddd/domain/models/email.dart';
 
 class UserModel {
   final String id;
