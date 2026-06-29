@@ -99,7 +99,6 @@ WHERE id = (UUID_TO_BIN('1233', 1));
 ### Идемпотентный обработчик
 
 ```
-
 Future<bool> handle(OrderPaidEvent event) async {
   if( await _eventsRepository.eventExists(event.id) {
     return true;
@@ -111,5 +110,153 @@ Future<bool> handle(OrderPaidEvent event) async {
    } catch (e) {
       throw Exception('Failed to process event ${event.id}');
    }
+}
+```
+
+## ДЗ 6 "Асинхронная интеграция и защита от внешнего мира"
+
+### Интеграционное событие
+```
+{
+  "eventId": "7b9e6d41-3a2b-4c1d-9e8f-5a6b7c8d9e0f",
+  "eventType": "OrderConfirmedEvent",
+  "meta": {
+    "schemaId": "1.0",
+    "producer": "Orders",
+    "correlationId": "12134",
+  },
+  "data": {
+    "orderId": "7b9e6d41-3a2b-4c1d-9e8f-5a6b7c8d9ert",
+    "confirmedAt": "2026-06-26T10:15:55Z",
+    "customerId":  "7b9e6d41-3a2b-4c1d-9e8f-5a6b7c8d96jk",
+    "items": [
+      {
+        "productId": "7b9e6d41-3a2b-4c1d-9e8f-5a6b7c8d9psk",
+        "title": "Доспехи рыцаря",
+        "quantity": 1,
+        "price": 100
+      }
+    ]
+  }
+}
+```
+**eventId** - для идемпотентности операции
+
+**eventType** - для определения кому предназначено сообщения (для маршрутизации)
+
+**schemaId** - для идентификации формата сообщения в случае изменения формата.
+
+**producer** - для отладки, отслеживания процесса в логах
+
+**correlationId** - Сквозное ID бизнес-операции. Упрощает трассировку логов.
+
+**Метаданные**
+
+**items** - данные по составу заказа для тела уведомления
+
+**customerId** - id пользователя, по которому определять контактные данные для уведомлений. Для безопасной передачи даннх во внешнюю систему лучше не передавать в сообщении ФИО и контактные данные. Можно либо синхронизировать данные во внешнем микросервисе с микросервисом пользователей, либо запрашивать контактные данные пользователя у микросервиса пользователей непосредственно при обработке данных сообщения.
+
+### Надежная публикация
+
+```
+Future handle(ConfirmOrderCommand command) async {
+    final order = _orderRepository.findById(command.orderId);
+    if (order == null) throw OrderCreateException('Order not found');
+    order.confirm();
+    try {
+    
+    await _repository.transactional((_) async {
+      await _orderRepository.save(order);
+      
+      for (final event in order.domainEvents) {
+        final outboxMessage = OutboxMessage(
+            id: Uuid().v4(),
+            type: event.runtimeType.toString(),
+            payload: event.toJson();
+            occuredAt: DateTime.now();
+        );
+        await _outboxRepository.add(outboxMessage);
+      }
+    });
+    
+    order.clearDomainEvents();
+    
+  } catch (e) {
+    throw Exception("Transaction failed and rolled back automatically. Error: $e");
+  }
+
+}
+```
+
+Фоновый процесс (Message Relay/Publisher) опросит таблицу outbox_messages и опубликует сообщение в брокер (RabbitMQ, Kafka), пометит событие как опубликованное.
+
+### Защитный слой (ACL)
+
+Warehouse DTO:
+```
+{
+  "sklad_id": 105,
+  "sklad_name": "Центральный Склад",
+  "sklad_adr": "г. Москва, ул. Ленина, 1",
+  "item_art": "ART-9982",
+  "item_title": "Световой меч джедая",
+  "item_descr": "Супер меч, о котором мечтают все",
+  "item_qty": 150,
+  "item_price_val": 45.50,
+  "item_cur": "RUB",
+  "cat_name": "Оборонительное приспособление игрока",
+  "manager_fio": "Иванов И.И."
+}
+```
+
+```
+abstract class WarehouseStockItem {
+  final int sklad_id;
+  final String sklad_name;
+  final String sklad_adr;
+  final String item_art;
+  final String item_title;
+  final String item_descr;
+  final num item_qty;
+  final num item_price_val;
+  final String item_cur;
+  final String cat_name;
+  final String manager_fio;
+}
+
+class WarehouseAclAdapter {
+
+  static WarehouseStockItem toDomain({LegacyWarehouseResponse legacyData}) {
+    _validateLegacyData(legacyData);
+
+    const price = Points.fromCurrency(
+      legacyData.item_price_val, legacyData.item_cur,);
+
+
+    const product = Product(
+      id: legacyData.item_art,
+      name: legacyData.item_title.trim(),
+      price: price,
+      description: legacyData.item_descr.trim(),
+    );
+
+    return product;
+  }
+
+  static void _validateLegacyData(LegacyWarehouseResponse data) {
+    const quantity = Math.max(0, legacyData.item_qty);
+    if (quantity == 0) {
+      throw Exception(
+          '[ACL] Ошибка валидации легаси данных: товар отсутствует на складе');
+    }
+    if (!data.item_art) {
+      throw Exception(
+          '[ACL] Ошибка валидации легаси данных: отсутствуют обязательные идентификаторы.');
+    }
+    if (data.item_price_val.runtimeType is! num || isNaN(data.item_price_val)) {
+      throw Exception(
+          '[ACL] Ошибка валидации легаси данных: неверный формат цены.');
+    }
+  }
 }
 ```
