@@ -43,16 +43,18 @@ CREATE TABLE order_lines (
     id BINARY(16) DEFAULT (UUID_TO_BIN(UUID(), 1)) PRIMARY KEY,
     order_id BINARY(16) NOT NULL,
     product_id BINARY(16) NOT NULL,
-    quantity INT NOT NULL,
+    quantity INTEGER NOT NULL,
 );
 
 CREATE TABLE users (
     id BINARY(16) DEFAULT (UUID_TO_BIN(UUID(), 1)) PRIMARY KEY,
     user_id BINARY(16) NOT NULL,
-    balance INTt DEFAULT 0,
+    balance DOUBLE DEFAULT 0.00,
     status ENUM('beginner', 'advanced', 'master') NOT NULL,
 );
 ```
+В таблице users id - это ключ БД, создается автоматически при добавлении новой записи, user_id - это id доменной модели, сквозное для различных доменов, что бы была возможность связать жизненный цикл сущности в разных доменах. Возможно, это здесь излишне.
+
 ValueObject Points в данном случае сохрянен как одно поле в таблице (Users --> balance), так как у этого VO только одно свойство со значением. Если бы было еще одно свойство, например название валюты, можно в соответствующей таблице сделать два поля: balance_count, balance_currency.
 
 ### Оптимистичные блокировки
@@ -60,13 +62,13 @@ ValueObject Points в данном случае сохрянен как одно
 Добавим поле version в таблицу Orders
 ```
 ALTER TABLE orders
-ADD version INT DEFAULT 0;
+ADD version INTEGER DEFAULT 0;
 ```
 
 ```
 UPDATE orders
 SET customer_id = (UUID_TO_BIN('1233', 1)), status = created, version = version + 1
-WHERE id = (UUID_TO_BIN('1233', 1));
+WHERE id = (UUID_TO_BIN('1233', 1)) AND version = expected_version;
 ```
 
 ### Проектирование Саги (Saga)
