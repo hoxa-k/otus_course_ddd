@@ -1,7 +1,7 @@
-import 'package:ddd/models/order.dart';
+import 'package:ddd/domain/models/order.dart';
 
 abstract class IOrderRepository {
   Order? findById(String id);
   List<Order> findByCustomerId(String customerId);
-  Order save(Order order);
+  Future<Order> save(Order order);
 }

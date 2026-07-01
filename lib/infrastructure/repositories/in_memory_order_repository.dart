@@ -1,5 +1,5 @@
-import 'package:ddd/models/order.dart';
-import 'package:ddd/repositories/i_order_repository.dart';
+import 'package:ddd/domain/interfaces/repositories/i_order_repository.dart';
+import 'package:ddd/domain/models/order.dart';
 
 class InMemoryOrderRepository implements IOrderRepository {
   final List<Order> _orders = [];
@@ -19,7 +19,7 @@ class InMemoryOrderRepository implements IOrderRepository {
   }
 
   @override
-  Order save(Order order) {
+  Future<Order> save(Order order) async {
     final index = _orders.indexWhere((e) => e.id == order.id);
     final insertTo = index < 0 ? _orders.length : index;
     if (index >= 0) _orders.removeAt(index);
