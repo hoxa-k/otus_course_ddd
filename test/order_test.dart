@@ -1,8 +1,8 @@
+import 'package:ddd/domain/models/order.dart';
+import 'package:ddd/domain/models/order_create_exception.dart';
+import 'package:ddd/domain/models/points.dart';
+import 'package:ddd/domain/models/product.dart';
 import 'package:ddd/infrastructure/repositories/in_memory_order_repository.dart';
-import 'package:ddd/models/order.dart';
-import 'package:ddd/models/order_create_exception.dart';
-import 'package:ddd/models/points.dart';
-import 'package:ddd/models/product.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -48,6 +48,17 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('Order confirmation test', () {
+      final order = Order.createNew(customerId: testCustomerId);
+
+      for (int i = 0; i < 10; i++) {
+        order.addItem(products[i], 1);
+      }
+
+
+
     });
   });
 }

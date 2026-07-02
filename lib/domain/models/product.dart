@@ -1,4 +1,4 @@
-import 'package:ddd/models/points.dart';
+import 'package:ddd/domain/models/points.dart';
 
 class Product {
   final String id;
