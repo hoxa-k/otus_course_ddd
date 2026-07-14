@@ -262,3 +262,112 @@ class WarehouseAclAdapter {
   }
 }
 ```
+
+## ДЗ 7 "CQRS и Наблюдаемость"
+
+### 1. Разделение моделей (CQRS)
+
+#### Command-модель: PlaceOrderCommand (DTO с данными для создания заказа)
+
+```
+class PlaceOrderCommand {
+    final String orderId;
+    final String customerId;
+    final List<OrderItemDto> items;
+    final ShippingDetailesDto shippingDetailes;
+    final PaymentDetailesDto paymentDetailes;
+    final DateTime createdAt;
+}
+
+class OrderItemDto {
+    final String productId;
+    final int quantity;
+    final num price;
+}
+```
+
+#### Query-модель (Read Model): OrderHistoryItemDTO
+
+```
+class OrderHistoryItemDTO {
+    final String productId;
+    final String name;
+    final String description;
+    final List<Uri> images;
+    final int quantity;
+    final num price;
+}
+```
+Для чтения выгоднее использовать отдельную Read-модель, так как она содержит все данные для отображения, не нужно делать несколько запросов для обогащения данных, это обеспечит целостность данных при отображении, уменьшит количество точек отказа, уменьшит время загрузки данных.
+
+### 2. Проектор (Projector)
+
+```
+class OrderProjector {
+  final OrderRepository _repository;
+
+  OrderProjector(this._repository);
+
+  Future<void> project(OrderEvent event) async {
+    switch (event) {
+      case OrderConfirmedEvent e:
+        await _handleConfirmed(e);
+      case OrderShippedEvent e:
+        await _handleShipped(e);
+      default:
+        break;
+    }
+  }
+      
+  Future<void> _handleConfirmed(OrderConfirmedEvent event) async {
+    final readModel = OrderReadModel(
+      id: event.orderId,
+      customerId: event.customerId,
+      status: OrderStatus.confirmed,
+      updatedAt: event.confirmedAt,
+    );
+    
+    await _repository.save(readModel);
+  }
+
+  Future<void> _handleShipped(OrderShippedEvent event) async {
+    final existingModel = await _repository.getById(event.orderId);
+    
+    if (existingModel == null) {
+      throw OrderException('Order ${event.orderId} not exists in repository');
+    }
+
+    final updatedModel = existingModel.copyWith(
+      status: OrderStatus.shipped,
+      trackingNumber: event.trackingNumber,
+      updatedAt: event.shippedAt,
+    );
+
+    await _repository.save(updatedModel);
+  }
+}
+```
+
+### 3. Структурированное логирование
+
+Пример JSON-лога PlaceOrderUseCase при успешном выполнении
+```
+{
+    "level": "Information", 
+    "timestamp": "2026-07-14T11:44:53Z, 
+    "message": "Order placed successfully", 
+    "correlationId": "7b9e6d41-3a2b-4c1d-9e8f-5a6b7c8d9cor",
+    "aggregateId": "Order",
+    "orderId": "7b9e6d41-3a2b-4c1d-9e8f-5a6b7c8d9ert",
+}
+```
+
+### 4. Метрики и Алертинг
+
+Бизнес-метрика: 
+<br>**Cart Abandonment Rate** (Доля брошенных корзин) - Доля пользователей, добавивших товары в корзину, но закрывших приложение на этапе ввода данных или оплаты.
+<br>Можно сделать оповещение менеджера при резком скачке метрики в течении дня. Например превышение метрики на 10-15% от среднего исторического показателя. Это может говорить о том, что не работает платежная система или ошибка в UI (кнопка заказа не работает или перекрывается другими элементами).
+<br>**Пример алерта**: Автоматический алерт в корпоративный мессенджер дежурному менеджеру и команде разработки для срочного аудита логов.
+
+Техническая метрика:
+<br>**Frequency of Errors** (Частота ошибок): Доля сбоев при обработке запроса (например, таймауты платежных систем или баз данных).
