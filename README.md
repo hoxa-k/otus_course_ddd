@@ -371,3 +371,70 @@ class OrderProjector {
 
 Техническая метрика:
 <br>**Frequency of Errors** (Частота ошибок): Доля сбоев при обработке запроса (например, таймауты платежных систем или баз данных).
+
+## ДЗ 8 "Архитектура на уровне системы"
+
+### 1. Уточнение Карты Контекстов
+
+![Context map](readme_data/Context mapping.drawio.png)
+
+Для интеграции DeliveryRouteContext с RegistrationOfDeliveryEmployeesContext я выбрала ACL, так как RegistrationOfDeliveryEmployeesContext - это внешний сервис регистрации и авторизации пользователей и нужно сделать прослойку для защиты внутренних моделей от изменения апи сервиса.
+
+Для интеграции WarehouseLogisticsContext и DeliveryCatalogContext выбран шаблон взаимодействия Customer-Supplier, так как модель Product редко изменяемая и команды работают в тесном взаимодействии, поэтому если у команды DeliveryCatalogContext возникает потребность в дополнении модели другая команда может подстроится и предоставить необходимые данные (обогатить модель нужными данными)
+
+### 2. Гексагональная архитектура
+
+```
+/src
+    /modules
+        /order
+            /ui
+                /screens
+                    create_order.dart
+                    orders_list.dart
+                /widgets
+                    order_item.dart
+            /application
+                /interfaces
+                    /handlers
+                        i_domain_event_dispatcher.dart
+                        i_domain_event_handler.dart
+                    i_command.dart
+                /dto
+                    order_line_dto.dart
+                /commands
+                    confirm_order_command.dart
+                    submit_order_command.dart
+                /event_handlers
+                    confirm_order_handler.dart
+                    end_order_confirmation_handler.dart
+                    submit_order_handler.dart
+                /use_cases
+                    i_place_order_use_case.dart
+            /domain
+                /interfaces
+                    i_domain_event.dart
+                    /repositories
+                        i_order_repository.dart
+                    /services
+                        i_email_service.dart
+                /aggregates
+                    /order
+                        order.dart
+                        order_line.dart
+                        /events
+                            order_confirmed.dart
+                            order_canceled.dart
+                    /customer
+                        customer.dart
+                /value_objects
+                    email.dart
+                    money.dart
+                /exceptions
+                    order_create.dart        
+            /infrastructure
+                /repositories
+                    in_memory_order_repository.dart
+                /services
+                    print_email_service.dart
+```
