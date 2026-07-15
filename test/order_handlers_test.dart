@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:ddd/application/confirm_order_handler.dart';
 import 'package:ddd/application/interfaces/i_command.dart';
+import 'package:ddd/application/interfaces/providers/i_product_info_provider.dart';
 import 'package:ddd/application/models/confirm_order_command.dart';
 import 'package:ddd/application/models/order_line_dto.dart';
+import 'package:ddd/application/models/product_dto.dart';
 import 'package:ddd/application/models/submit_order_command.dart';
 import 'package:ddd/application/send_order_confirmation_handler.dart';
 import 'package:ddd/application/submit_order_handler.dart';
@@ -18,6 +20,8 @@ import 'package:mocktail/mocktail.dart';
 class MockOrderRepository extends Mock implements IOrderRepository {}
 
 class MockEmailService extends Mock implements IEmailService {}
+
+class MockProductProvider extends Mock implements IProductInfoProvider {}
 
 class FakeOrder extends Fake implements Order {
   @override
@@ -37,6 +41,7 @@ void main() {
   late StreamController<ICommand> streamController;
   late Stream<ICommand> stream;
   late Order order;
+  late ProductDto product;
 
   setUpAll(() {
     registerFallbackValue(FakeEmail());
@@ -51,6 +56,9 @@ void main() {
       status: .created,
     );
     registerFallbackValue(order);
+
+    product = ProductDto(id: '123', name: 'name', price: 345);
+    registerFallbackValue(product);
   });
 
   tearDown(() {
@@ -68,6 +76,11 @@ void main() {
       when(() => orderRepository.findById(any())).thenAnswer((_) {
         return order;
       });
+      final IProductInfoProvider productInfoProvider = MockProductProvider();
+      when(() => productInfoProvider.findById(any())).thenAnswer((_) {
+        return product;
+      });
+
       final IEmailService emailService = MockEmailService();
       when(
         () => emailService.sendEmail(
@@ -80,9 +93,11 @@ void main() {
         final submitOrderCommand = event as SubmitOrderCommand;
        await  SubmitOrderHandler(
           orderRepository: orderRepository,
+          productProvider: productInfoProvider,
           eventDispatcher: InProcessDomainEventDispatcher(eventHandlers: []),
         ).handle(submitOrderCommand);
 
+        verify(() => productInfoProvider.findById(any())).called(1);
         verify(() => orderRepository.save(any())).called(1);
       });
 
